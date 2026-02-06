@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Innovative Armor Simulation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        .container {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        #controls {
+            flex: 1;
+            padding: 15px;
+            border-right: 1px solid #ccc;
+        }
+        #simulation {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        canvas {
+            border: 2px solid #333;
+            background-color: #e0e0e0;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        .control-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        input[type="range"], select {
+            width: 95%;
+            margin-bottom: 5px;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            background-color: #007bff;
+            color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .layer-buttons, .simulation-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .results-header div {
+            display: flex;
+            gap: 10px;
+        }
+        #results-container {
+            width: 100%;
+            max-width: 1200px;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        #results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        #results-table th, #results-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        #results-table th {
+            background-color: #f2f2f2;
+            color: #333;
+        }
+        #results-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 1000; 
+            left: 0;
+            top: 0;
+            width: 100%; 
+            height: 100%; 
+            overflow: auto; 
+            background-color: rgba(0,0,0,0.6); 
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 900px;
+            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
+            animation-name: animatetop;
+            animation-duration: 0.4s
+        }
+        @keyframes animatetop {
+            from {transform: translateY(-50px); opacity: 0}
+            to {transform: translateY(0); opacity: 1}
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        #whippleCanvas {
+            border: 1px solid #ddd;
+            background-color: #e9e9e9;
+            width: 100%;
+            height: 300px;
+        }
+        #whippleResults {
+            margin-top: 15px;
+            font-size: 1.1em;
+        }
+    </style>
+</head>
+<body>
+    <h1>Multi-Layer Armor Simulation</h1>
+    <div class="container">
+        <div id="controls">
+            <h2>Settings</h2>
+            <div class="control-group">
+                <label for="projectileType">Projectile Type:</label>
+                <select id="projectileType">
+                    <option value="Steel">Steel</option>
+                    <option value="Tungsten">Tungsten</option>
+                    <option value="Depleted Uranium">Depleted Uranium</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="initialVelocity">Initial Velocity (m/s):</label>
+                <input type="range" id="initialVelocity" min="1000" max="10000" value="5000">
+                <span id="velocityValue">5000</span> m/s
+            </div>
+            <div class="control-group">
+                <label for="projectileRadius">Projectile Radius (mm):</label>
+                <input type="range" id="projectileRadius" min="1" max="30" value="5">
+                <span id="radiusValue">5</span> mm
+            </div>
+            <div class="control-group">
+                <label for="impactAngle">Impact Angle (°):</label>
+                <input type="range" id="impactAngle" min="30" max="90" value="90">
+                <span id="angleValue">90</span>°
+            </div>
+            <hr>
+            <h3>Armor Layers</h3>
+            <div id="layersList"></div>
+            <div class="layer-buttons">
+                <button id="addLayerBtn">Add Layer</button>
+                <button id="removeLayerBtn">Remove Layer</button>
+            </div>
+        </div>
+        <div id="simulation">
+            <h2>Visualization</h2>
+            <canvas id="simulationCanvas" width="800" height="400"></canvas>
+            <div id="results">
+                <p id="finalVelocityText">Final Velocity: 0 m/s</p>
+                <p id="layersPenetratedText">Layers Penetrated: 0</p>
+            </div>
+            <div class="simulation-buttons">
+                <button id="runBtn">Run Simulation</button>
+                <button id="resetBtn">Reset</button>
+                <button id="resultBtn">Final Result</button>
+                <button id="showWhippleBtn">Whipple Shield</button> 
+            </div>
+        </div>
+    </div>
+
+    <div id="results-container">
+        <div class="results-header">
+            <h2>Test Results</h2>
+            <div>
+                <button id="savePdfBtn">Save to PDF</button>
+                <button id="clearTableBtn">Clear Table</button>
+            </div>
+        </div>
+        <table id="results-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Projectile</th>
+                    <th>Armor Type</th>
+                    <th>V₀ (m/s)</th>
+                    <th>Radius (mm)</th>
+                    <th>Angle (°)</th>
+                    <th>Result</th>
+                    <th>Vₖ (m/s)</th>
+                    <th>Layers</th>
+                </tr>
+            </thead>
+            <tbody id="results-tbody">
+            </tbody>
+        </table>
+    </div>
+
+    <div id="whippleModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Whipple Shield Simulation</h2>
+            <canvas id="whippleCanvas" width="800" height="300"></canvas>
+            <div id="whippleResults">
+                <p id="whippleFinalVelocityText">Final Velocity: 0 m/s</p>
+                <p id="whipplePenetrationText">Result: Intact</p>
+            </div>
+            <p>A Whipple shield consists of a relatively thin outer bumper placed some distance from the main spacecraft wall. The bumper fragments the projectile, spreading its energy over a larger area of the rear wall.</p>
+        </div>
+    </div>
+
+    <script>
+        const { jsPDF } = window.jspdf;
+        
+        const canvas = document.getElementById('simulationCanvas');
+        const ctx = canvas.getContext('2d');
+        const whippleModal = document.getElementById('whippleModal');
+        const whippleCanvas = document.getElementById('whippleCanvas');
+        const whippleCtx = whippleCanvas.getContext('2d');
+        const whippleFinalVelocityText = document.getElementById('whippleFinalVelocityText');
+        const whipplePenetrationText = document.getElementById('whipplePenetrationText');
+        const showWhippleBtn = document.getElementById('showWhippleBtn');
+        const closeWhippleModalBtn = document.querySelector('#whippleModal .close-button');
+        const projectileTypeSelect = document.getElementById('projectileType');
+        const initialVelocityInput = document.getElementById('initialVelocity');
+        const projectileRadiusInput = document.getElementById('projectileRadius');
+        const impactAngleInput = document.getElementById('impactAngle');
+        const velocityValueSpan = document.getElementById('velocityValue');
+        const radiusValueSpan = document.getElementById('radiusValue');
+        const angleValueSpan = document.getElementById('angleValue');
+        const layersListDiv = document.getElementById('layersList');
+        const finalVelocityText = document.getElementById('finalVelocityText');
+        const layersPenetratedText = document.getElementById('layersPenetratedText');
+        const addLayerBtn = document.getElementById('addLayerBtn');
+        const removeLayerBtn = document.getElementById('removeLayerBtn');
+        const runBtn = document.getElementById('runBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const resultBtn = document.getElementById('resultBtn');
+        const savePdfBtn = document.getElementById('savePdfBtn');
+        const clearTableBtn = document.getElementById('clearTableBtn');
+        const resultsTbody = document.getElementById('results-tbody');
+        
+        let testCounter = 1;
+        let projectile = {
+            mass: 0.001, initialRadius: 0, radius: 0,
+            x: 50, y: canvas.height / 2,
+            vx: 0, vy: 0,
+            velocity: 0, ke: 0, initialKe: 0,
+            isMoving: false, trail: [], destroyed: false, fragmentationFactor: 0.5
+        };
+        
+        const PROJECTILE_MATERIALS = { 
+            'Steel': { density: 7850, color: '#A0A0A0' }, 
+            'Tungsten': { density: 19300, color: '#4A4A4A' }, 
+            'Depleted Uranium': { density: 19100, color: '#3E563E' } 
+        };
+
+        const MATERIALS = { 
+            'Hybrid Disruptor Shield': { density: 15600, absorption: 0.08, fragmentation: true, color: '#4B0082', hardness: 0.9 }, 
+            'Two-Phase Absorber': { density: 1100, absorption: 0.5, newtonian: true, color: '#98FB98', hardness: 0.2 }, 
+            'Flexible Composite Screen': { density: 1440, absorption: 0.25, color: '#FFD700', hardness: 0.4 }, 
+            'Shape Memory Structure': { density: 6500, absorption: 0.15, color: '#ADD8E6', hardness: 0.7 } 
+        };
+
+        const WHIPPLE_MATERIALS = { 
+            'Steel': { density: 7850, absorption: 0.1, fragmentation: true, color: '#888888', hardness: 0.8 }, 
+            'Aluminum': { density: 2700, absorption: 0.4, fragmentation: false, color: '#BBBBBB', hardness: 0.5 }, 
+            'Void': { density: 0, absorption: 0, fragmentation: false, color: 'transparent', hardness: 0 } 
+        };
+
+        let layers = [
+            { material: 'Hybrid Disruptor Shield', thickness: 2, isDestroyed: false, destructionProgress: 0 },
+            { material: 'Two-Phase Absorber', thickness: 15, isDestroyed: false, destructionProgress: 0 },
+            { material: 'Flexible Composite Screen', thickness: 5, isDestroyed: false, destructionProgress: 0 },
+            { material: 'Shape Memory Structure', thickness: 10, isDestroyed: false, destructionProgress: 0 }
+        ];
+
+        let effects = [];
+        let animationFrameId;
+        let whippleAnimationFrameId;
+
+        function addResultToTable(resultProjectile, resultLayers, testType) {
+            const resultRow = document.createElement('tr');
+            const finalVelocity = resultProjectile.velocity;
+            const penetratedLayers = resultLayers.filter(l => l.isDestroyed).length;
+            const resultText = finalVelocity > 0.1 ? "Penetration" : "Stopped";
+
+            resultRow.innerHTML = `
+                <td>${testCounter++}</td>
+                <td>${projectileTypeSelect.value}</td>
+                <td>${testType}</td>
+                <td>${initialVelocityInput.value}</td>
+                <td>${projectileRadiusInput.value}</td>
+                <td>${impactAngleInput.value}</td>
+                <td style="font-weight: bold; color: ${finalVelocity > 0.1 ? 'red' : 'green'};">${resultText}</td>
+                <td>${finalVelocity.toFixed(2)}</td>
+                <td>${penetratedLayers} / ${resultLayers.length}</td>
+            `;
+            resultsTbody.appendChild(resultRow);
+        }
+
+        function clearTable() {
+            resultsTbody.innerHTML = '';
+            testCounter = 1;
+        }
+        
+        function saveTableAsPDF() {
+            const resultsContainer = document.getElementById('results-container');
+            html2canvas(resultsContainer).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = pdf.internal.pageSize.getHeight();
+                const ratio = canvas.width / canvas.height;
+                const imgWidth = pdfWidth - 20;
+                const imgHeight = imgWidth / ratio;
+                pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight > pdfHeight - 20 ? pdfHeight - 20 : imgHeight);
+                pdf.save('armor_test_results.pdf');
+            });
+        }
+
+        function calculateProjectileMass(radius_mm) { 
+            return (4/3) * Math.PI * Math.pow(radius_mm / 1000, 3) * PROJECTILE_MATERIALS[projectileTypeSelect.value].density; 
+        }
+
+        function updateDisplayValues() { 
+            velocityValueSpan.textContent = initialVelocityInput.value; 
+            radiusValueSpan.textContent = projectileRadiusInput.value; 
+            angleValueSpan.textContent = impactAngleInput.value; 
+            projectile.initialRadius = parseFloat(projectileRadiusInput.value); 
+            projectile.radius = projectile.initialRadius; 
+            drawSimulation(); 
+        }
+
+        function createLayerControl(layer, index) { 
+            const div = document.createElement('div'); 
+            div.className = 'layer-controls'; 
+            div.innerHTML = `
+                <label>Layer ${index + 1}:</label>
+                <select id="material-${index}">${Object.keys(MATERIALS).map(mat => `<option value="${mat}" ${layer.material === mat ? 'selected' : ''}>${mat}</option>`).join('')}</select>
+                <label>Thickness (mm):</label>
+                <input type="range" id="thickness-${index}" min="1" max="50" value="${layer.thickness}">
+                <span id="thicknessValue-${index}">${layer.thickness}</span> mm`; 
+            const tI = div.querySelector(`#thickness-${index}`), 
+                  tV = div.querySelector(`#thicknessValue-${index}`), 
+                  mS = div.querySelector(`#material-${index}`); 
+            tI.addEventListener('input', (e) => { layers[index].thickness = parseInt(e.target.value); tV.textContent = e.target.value; drawSimulation(); }); 
+            mS.addEventListener('change', (e) => { layers[index].material = e.target.value; drawSimulation(); }); 
+            return div; 
+        }
+
+        function updateLayersList() { 
+            layersListDiv.innerHTML = ''; 
+            layers.forEach((layer, index) => { layersListDiv.appendChild(createLayerControl(layer, index)); }); 
+            drawSimulation(); 
+        }
+
+        function addLayer() { 
+            layers.push({ material: 'Flexible Composite Screen', thickness: 5, isDestroyed: false, destructionProgress: 0 }); 
+            updateLayersList(); 
+        }
+
+        function removeLayer() { 
+            if (layers.length > 1) { layers.pop(); updateLayersList(); } 
+        }
+
+        function drawSimulation() { 
+            ctx.clearRect(0, 0, canvas.width, canvas.height); 
+            drawLayers(ctx, canvas, layers, MATERIALS); 
+            drawProjectile(ctx, projectile); 
+            drawTrail(ctx, projectile.trail); 
+            drawEffects(ctx, effects); 
+        }
+
+        function drawLayers(context, targetCanvas, customLayers, materialsDB) { 
+            context.save(); 
+            const totalThickness = customLayers.reduce((sum, layer) => sum + layer.thickness, 0) || 1; 
+            const scale = (targetCanvas.width - 200) / totalThickness; 
+            let currentX = 100; 
+            customLayers.forEach((layer) => { 
+                const layerWidth = layer.thickness * scale; 
+                const material = materialsDB[layer.material]; 
+                if (!material) { currentX += layerWidth; return; } 
+                context.globalAlpha = 1 - (layer.destructionProgress || 0) * 0.5; 
+                context.fillStyle = material.color; 
+                context.fillRect(currentX, 0, layerWidth, targetCanvas.height); 
+                context.strokeStyle = '#333'; 
+                context.lineWidth = 2; 
+                context.strokeRect(currentX, 0, layerWidth, targetCanvas.height); 
+                if (layer.isDestroyed) { 
+                    context.globalAlpha = 1; 
+                    context.strokeStyle = 'red'; 
+                    context.lineWidth = 2; 
+                    context.beginPath(); 
+                    context.moveTo(currentX, targetCanvas.height); 
+                    context.lineTo(currentX + layerWidth, 0); 
+                    context.moveTo(currentX, 0); 
+                    context.lineTo(currentX + layerWidth, targetCanvas.height); 
+                    context.stroke(); 
+                } 
+                context.fillStyle = '#000'; 
+                context.textAlign = 'center'; 
+                context.font = '10px Arial'; 
+                context.fillText(layer.material, currentX + layerWidth / 2, 20); 
+                if (layer.destructionProgress > 0 && layer.destructionProgress < 1) { 
+                    const damagedThickness = (layer.thickness * layer.destructionProgress).toFixed(2); 
+                    context.fillStyle = 'red'; 
+                    context.font = '10px Arial'; 
+                    context.fillText(`${damagedThickness} mm`, currentX + layerWidth / 2, 40); 
+                } 
+                currentX += layerWidth; 
+            }); 
+            context.restore(); 
+        }
+
+        function drawProjectile(context, currentProjectile) { 
+            context.save(); 
+            const selectedMaterial = projectileTypeSelect.value; 
+            const color = currentProjectile.isMoving ? 'red' : PROJECTILE_MATERIALS[selectedMaterial].color; 
+            const drawRadius = Math.max(currentProjectile.radius, 1.5); 
+            if (isNaN(drawRadius) || drawRadius <= 0) { context.restore(); return; } 
+            context.fillStyle = currentProjectile.destroyed ? '#FF4500' : color; 
+            context.beginPath(); 
+            context.arc(currentProjectile.x, currentProjectile.y, drawRadius, 0, Math.PI * 2); 
+            context.fill(); 
+            context.restore(); 
+        }
+
+        function drawTrail(context, currentTrail) { 
+            if (currentTrail.length < 2) return; 
+            context.save(); 
+            context.strokeStyle = 'rgba(255, 0, 0, 0.5)'; 
+            context.lineWidth = 2; 
+            context.beginPath(); 
+            context.moveTo(currentTrail[0].x, currentTrail[0].y); 
+            for (let i = 1; i < currentTrail.length; i++) { context.lineTo(currentTrail[i].x, currentTrail[i].y); } 
+            context.stroke(); 
+            context.restore(); 
+        }
+
+        function drawEffects(context, currentEffects) { 
+            context.save(); 
+            for (let i = currentEffects.length - 1; i >= 0; i--) { 
+                const effect = currentEffects[i]; 
+                context.globalAlpha = effect.opacity; 
+                context.fillStyle = effect.color || 'white'; 
+                context.beginPath(); 
+                context.arc(effect.x, effect.y, effect.size, 0, Math.PI * 2); 
+                context.fill(); 
+                effect.size += effect.speed || 1; 
+                effect.opacity -= 0.05; 
+                if (effect.opacity <= 0) currentEffects.splice(i, 1); 
+            } 
+            context.restore(); 
+        }
+
+        function updateResults(finalVelocity) { 
+            finalVelocityText.textContent = `Final Velocity: ${finalVelocity.toFixed(2)} m/s`; 
+            layersPenetratedText.textContent = `Layers Penetrated: ${layers.filter(l => l.isDestroyed).length} of ${layers.length}`; 
+            finalVelocityText.style.color = finalVelocity <= 0.1 ? 'green' : 'red'; 
+        }
+        
+        function runSimulation() {
+            if (projectile.isMoving) return;
+            resetSimulation();
+            projectile.isMoving = true;
+            const initialVelocity = parseFloat(initialVelocityInput.value), 
+                  initialRadius = parseFloat(projectileRadiusInput.value), 
+                  angleDeg = parseFloat(impactAngleInput.value), 
+                  angleRad = angleDeg * (Math.PI / 180);
+            projectile.mass = calculateProjectileMass(initialRadius);
+            projectile.ke = 0.5 * projectile.mass * Math.pow(initialVelocity, 2);
+            projectile.initialKe = projectile.ke;
+            projectile.velocity = initialVelocity;
+            projectile.vx = initialVelocity * Math.sin(angleRad);
+            projectile.vy = initialVelocity * -Math.cos(angleRad);
+            projectile.y = canvas.height / 2 + 50 * Math.cos(angleRad); 
+            const totalThickness = layers.reduce((sum, layer) => sum + layer.thickness, 0) || 1, 
+                  scale = (canvas.width - 200) / totalThickness, 
+                  timeStep = 1/60;
+            let currentLayerIndex = -1;
+            const armorStartX = 100;
+
+            function animate() {
+                if (!projectile.isMoving || projectile.ke <= 0) {
+                    projectile.isMoving = false;
+                    cancelAnimationFrame(animationFrameId);
+                    updateResults(projectile.velocity);
+                    drawSimulation();
+                    addResultToTable(projectile, layers, 'Composite');
+                    return;
+                }
+                const distanceThisStep = projectile.velocity * timeStep * 0.05;
+                if (projectile.x < armorStartX) {
+                    const timeScale = 0.001;
+                    projectile.x += projectile.vx * timeScale;
+                    projectile.y += projectile.vy * timeScale;
+                    if (projectile.x >= armorStartX) projectile.y = canvas.height / 2;
+                } else {
+                    projectile.x += distanceThisStep;
+                    let layerStart = armorStartX;
+                    for (let j = 0; j < layers.length; j++) {
+                        const layer = layers[j], 
+                              material = MATERIALS[layer.material], 
+                              layerWidth = layer.thickness * scale, 
+                              layerEnd = layerStart + layerWidth;
+                        if (projectile.x > layerStart && projectile.x <= layerEnd) {
+                            const angleFactor = 1 / Math.sin(angleRad), 
+                                  effectiveThickness = layer.thickness * angleFactor, 
+                                  holeVolume = Math.PI * Math.pow(projectile.initialRadius, 2) * effectiveThickness, 
+                                  toughness = material.density * material.absorption * 0.1, 
+                                  energyToPenetrateLayer = toughness * holeVolume, 
+                                  energyLoss = energyToPenetrateLayer * (distanceThisStep / layerWidth);
+                            projectile.ke -= energyLoss;
+                            if (currentLayerIndex !== j) {
+                                currentLayerIndex = j;
+                                if (material.hardness) projectile.ke -= projectile.ke * material.hardness * 0.1;
+                                if (material.fragmentation && !projectile.destroyed) { 
+                                    projectile.destroyed = true; 
+                                    projectile.mass *= Math.pow(projectile.fragmentationFactor, 3); 
+                                    projectile.ke *= Math.pow(projectile.fragmentationFactor, 3); 
+                                }
+                            }
+                            layer.destructionProgress = (projectile.x - layerStart) / layerWidth;
+                            break;
+                        }
+                        layerStart = layerEnd;
+                    }
+                }
+                projectile.trail.push({ x: projectile.x, y: projectile.y });
+                if (projectile.trail.length > 50) projectile.trail.shift();
+                if (projectile.ke <= 0) { projectile.ke = 0; projectile.velocity = 0; } else { projectile.velocity = Math.sqrt(Math.max(0, (2 * projectile.ke) / projectile.mass)); }
+                layers.forEach((layer, index) => { let layerStart = 100 + layers.slice(0, index).reduce((sum, l) => sum + l.thickness * scale, 0); const layerEnd = layerStart + layer.thickness * scale; if(projectile.x > layerEnd && !layer.isDestroyed) { layer.isDestroyed = true; layer.destructionProgress = 1; } });
+                const keRatio = projectile.initialKe > 0 ? projectile.ke / projectile.initialKe : 0;
+                projectile.radius = projectile.initialRadius * Math.sqrt(keRatio);
+                drawSimulation();
+                updateResults(projectile.velocity);
+                if (projectile.x >= canvas.width - 50) projectile.isMoving = false;
+                animationFrameId = requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        function resetSimulation() {
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            layers.forEach(layer => { layer.isDestroyed = false; layer.destructionProgress = 0; });
+            projectile.isMoving = false;
+            projectile.x = 50;
+            projectile.y = canvas.height / 2;
+            projectile.velocity = 0;
+            projectile.trail = [];
+            projectile.destroyed = false;
+            effects = [];
+            projectile.initialRadius = parseFloat(projectileRadiusInput.value);
+            projectile.radius = projectile.initialRadius;
+            projectile.mass = calculateProjectileMass(projectile.initialRadius);
+            updateResults(0);
+            drawSimulation();
+        }
+        
+        function showFinalResult() {
+            if (projectile.isMoving) return;
+            resetSimulation();
+            const initialVelocity = parseFloat(initialVelocityInput.value), initialRadius = parseFloat(projectileRadiusInput.value), angleDeg = parseFloat(impactAngleInput.value), angleRad = angleDeg * (Math.PI / 180);
+            projectile.mass = calculateProjectileMass(initialRadius);
+            projectile.ke = 0.5 * projectile.mass * Math.pow(initialVelocity, 2);
+            projectile.initialKe = projectile.ke;
+            const totalThickness = layers.reduce((sum, layer) => sum + layer.thickness, 0) || 1, scale = (canvas.width - 200) / totalThickness;
+            projectile.x = 100;
+            for (let j = 0; j < layers.length; j++) {
+                if (projectile.ke <= 0) break;
+                const layer = layers[j], material = MATERIALS[layer.material], angleFactor = 1 / Math.sin(angleRad), effectiveThickness = layer.thickness * angleFactor;
+                if (material.hardness) projectile.ke -= projectile.ke * material.hardness * 0.1;
+                if (material.fragmentation && !projectile.destroyed) { projectile.destroyed = true; projectile.mass *= Math.pow(projectile.fragmentationFactor, 3); projectile.ke *= Math.pow(projectile.fragmentationFactor, 3); }
+                const holeVolume = Math.PI * Math.pow(initialRadius, 2) * effectiveThickness, toughness = material.density * material.absorption * 0.1, energyToPenetrate = toughness * holeVolume;
+                if (projectile.ke > energyToPenetrate) { projectile.ke -= energyToPenetrate; layer.isDestroyed = true; layer.destructionProgress = 1; projectile.x += layer.thickness * scale; } else { const penetrationRatio = projectile.ke / energyToPenetrate; layer.destructionProgress = penetrationRatio; projectile.x += layer.thickness * scale * penetrationRatio; projectile.ke = 0; }
+            }
+            if (projectile.ke <= 0) { projectile.velocity = 0; } else { projectile.velocity = Math.sqrt(Math.max(0, (2 * projectile.ke) / projectile.mass)); }
+            const keRatio = projectile.initialKe > 0 ? projectile.ke / projectile.initialKe : 0;
+            projectile.radius = projectile.initialRadius * Math.sqrt(keRatio);
+            updateResults(projectile.velocity);
+            drawSimulation();
+            addResultToTable(projectile, layers, 'Composite');
+        }
+        
+        function runWhippleSimulation() {
+            if (whippleAnimationFrameId) cancelAnimationFrame(whippleAnimationFrameId);
+            const whippleProjectile = { ...projectile, x: 50, y: whippleCanvas.height / 2, trail: [], destroyed: false, isMoving: true, effects: [] };
+            const initialVelocity = parseFloat(initialVelocityInput.value);
+            whippleProjectile.initialRadius = parseFloat(projectileRadiusInput.value);
+            whippleProjectile.radius = whippleProjectile.initialRadius;
+            const angleDeg = parseFloat(impactAngleInput.value), angleRad = angleDeg * (Math.PI / 180);
+            whippleProjectile.mass = calculateProjectileMass(whippleProjectile.initialRadius);
+            whippleProjectile.ke = 0.5 * whippleProjectile.mass * Math.pow(initialVelocity, 2);
+            whippleProjectile.initialKe = whippleProjectile.ke;
+            whippleProjectile.velocity = initialVelocity;
+            whippleProjectile.vx = initialVelocity * Math.sin(angleRad);
+            whippleProjectile.vy = initialVelocity * -Math.cos(angleRad);
+            whippleProjectile.y = whippleCanvas.height / 2 + 50 * Math.cos(angleRad); 
+            const whippleLayers = [ { material: 'Steel', thickness: 1, isDestroyed: false, destructionProgress: 0 }, { material: 'Void', thickness: 20, isDestroyed: false, destructionProgress: 0 }, { material: 'Aluminum', thickness: 10, isDestroyed: false, destructionProgress: 0 } ];
+            const armorStartX = 100, totalWhippleThickness = whippleLayers.reduce((sum, layer) => sum + layer.thickness, 0), scale = (whippleCanvas.width - 200) / totalWhippleThickness, timeStep = 1/60;
+            let currentLayerIndex = -1;
+
+            function animateWhipple() {
+                if (!whippleProjectile.isMoving || whippleProjectile.ke <= 0) {
+                    whippleProjectile.isMoving = false;
+                    cancelAnimationFrame(whippleAnimationFrameId);
+                    whippleFinalVelocityText.textContent = `Final Velocity: ${whippleProjectile.velocity.toFixed(2)} m/s`;
+                    const penetrationResult = whippleProjectile.velocity > 0.1 ? "Penetrated!" : "Stopped";
+                    whipplePenetrationText.textContent = `Result: ${penetrationResult}`;
+                    whipplePenetrationText.style.color = whippleProjectile.velocity > 0.1 ? 'red' : 'green';
+                    drawWhippleSimulation(whippleProjectile, whippleLayers);
+                    addResultToTable(whippleProjectile, whippleLayers, 'Whipple');
+                    return;
+                }
+                const distanceThisStep = whippleProjectile.velocity * timeStep * 0.05;
+                if (whippleProjectile.x < armorStartX) {
+                    const timeScale = 0.001;
+                    whippleProjectile.x += whippleProjectile.vx * timeScale;
+                    whippleProjectile.y += whippleProjectile.vy * timeScale;
+                    if (whippleProjectile.x >= armorStartX) whippleProjectile.y = whippleCanvas.height / 2;
+                } else {
+                    whippleProjectile.x += distanceThisStep;
+                    let layerStart = armorStartX;
+                    for (let j = 0; j < whippleLayers.length; j++) {
+                        const layer = whippleLayers[j], material = WHIPPLE_MATERIALS[layer.material], layerWidth = layer.thickness * scale, layerEnd = layerStart + layerWidth;
+                        if (whippleProjectile.x > layerStart && whippleProjectile.x <= layerEnd) {
+                            if (material.fragmentation && !whippleProjectile.destroyed) { whippleProjectile.destroyed = true; whippleProjectile.mass *= 0.3; whippleProjectile.ke *= 0.3; whippleProjectile.radius *= Math.cbrt(0.3); }
+                            if (material.density > 0) {
+                                const angleFactor = 1 / Math.sin(angleRad), effectiveThickness = layer.thickness * angleFactor, holeVolume = Math.PI * Math.pow(whippleProjectile.initialRadius, 2) * effectiveThickness, toughness = material.density * material.absorption * 0.1;
+                                let energyToPenetrateLayer = toughness * holeVolume;
+                                if (whippleProjectile.destroyed && material.fragmentation === false) { energyToPenetrateLayer *= 0.5; }
+                                const energyLoss = energyToPenetrateLayer * (distanceThisStep / layerWidth);
+                                whippleProjectile.ke -= energyLoss;
+                            }
+                            if (currentLayerIndex !== j) { currentLayerIndex = j; if (material.hardness) whippleProjectile.ke -= whippleProjectile.ke * material.hardness * 0.05; }
+                            layer.destructionProgress = (whippleProjectile.x - layerStart) / layerWidth;
+                            break;
+                        }
+                        layerStart = layerEnd;
+                    }
+                }
+                whippleProjectile.trail.push({ x: whippleProjectile.x, y: whippleProjectile.y });
+                if (whippleProjectile.trail.length > 50) whippleProjectile.trail.shift();
+                if (whippleProjectile.ke <= 0) { whippleProjectile.ke = 0; whippleProjectile.velocity = 0; } else { whippleProjectile.velocity = Math.sqrt(Math.max(0, (2 * whippleProjectile.ke) / whippleProjectile.mass)); }
+                whippleLayers.forEach((layer, index) => { let layerStart = armorStartX + whippleLayers.slice(0, index).reduce((sum, l) => sum + l.thickness * scale, 0); const layerEnd = layerStart + layer.thickness * scale; if(whippleProjectile.x > layerEnd && !layer.isDestroyed && layer.material !== 'Void') { layer.isDestroyed = true; layer.destructionProgress = 1; } });
+                const keRatio = whippleProjectile.initialKe > 0 ? whippleProjectile.ke / whippleProjectile.initialKe : 0;
+                if (!whippleProjectile.destroyed) { whippleProjectile.radius = whippleProjectile.initialRadius * Math.sqrt(keRatio); }
+                drawWhippleSimulation(whippleProjectile, whippleLayers);
+                if (whippleProjectile.x >= whippleCanvas.width - 50) whippleProjectile.isMoving = false;
+                whippleAnimationFrameId = requestAnimationFrame(animateWhipple);
+            }
+            animateWhipple();
+        }
+
+        function drawWhippleSimulation(currentProjectile, customLayers) {
+            whippleCtx.clearRect(0, 0, whippleCanvas.width, whippleCanvas.height);
+            drawLayers(whippleCtx, whippleCanvas, customLayers, WHIPPLE_MATERIALS);
+            drawProjectile(whippleCtx, currentProjectile);
+            drawTrail(whippleCtx, currentProjectile.trail);
+            drawEffects(whippleCtx, currentProjectile.effects);
+        }
+
+        addLayerBtn.addEventListener('click', addLayer);
+        removeLayerBtn.addEventListener('click', removeLayer);
+        runBtn.addEventListener('click', runSimulation);
+        resetBtn.addEventListener('click', resetSimulation);
+        resultBtn.addEventListener('click', showFinalResult);
+        savePdfBtn.addEventListener('click', saveTableAsPDF);
+        clearTableBtn.addEventListener('click', clearTable);
+        showWhippleBtn.addEventListener('click', () => {
+            whippleModal.style.display = 'flex';
+            runWhippleSimulation();
+        });
+        closeWhippleModalBtn.addEventListener('click', () => {
+            whippleModal.style.display = 'none';
+            if (whippleAnimationFrameId) cancelAnimationFrame(whippleAnimationFrameId);
+        });
+        window.addEventListener('click', (event) => {
+            if (event.target == whippleModal) {
+                whippleModal.style.display = 'none';
+                if (whippleAnimationFrameId) cancelAnimationFrame(whippleAnimationFrameId);
+            }
+        });
+
+        initialVelocityInput.addEventListener('input', updateDisplayValues);
+        projectileRadiusInput.addEventListener('input', updateDisplayValues);
+        projectileTypeSelect.addEventListener('change', drawSimulation);
+        impactAngleInput.addEventListener('input', updateDisplayValues);
+        window.onload = () => { updateDisplayValues(); updateLayersList(); };
+    </script>
+</body>
+</html>
